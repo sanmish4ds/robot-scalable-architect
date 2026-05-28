@@ -2,6 +2,12 @@
 % Real-Time Intelligence and Scalable Architecture for Robotics
 % Springer (svjour3) formatted version (CIS target)
 % =============================================================================
+% Double-blind build: compile main_blind.tex (defines \blindmodetrue before \input).
+\ifdefined\blindmodetrue
+  \def\blindmode{true}
+\else
+  \def\blindmode{false}
+\fi
 \RequirePackage{fix-cm}
 \documentclass[smallextended]{svjour3}
 \smartqed  % flush right qed marks, e.g. at end of proof
@@ -52,26 +58,32 @@
 
 \title{Real-Time Intelligence and Scalable Architecture for Robotics}
 
-\author{Sanjay Mishra \and Divya Chukkapalli \and Ganesh R. Naik}
-
-\institute{
-S. Mishra \at Independent Researcher, Raleigh, NC, USA \\
-\email{sanmish4@icloud.com}
-\and
-D. Chukkapalli \at Independent Researcher, Apex, NC, USA \\
-\email{divya.95j@gmail.com}
-\and
-G. R. Naik \at Torrens University Australia, Adelaide, SA, Australia \\
-\email{ganesh.naik@torrens.edu.au}
-}
-
-\date{Received: date / Accepted: date}
-% The correct dates will be entered by the editor
+\ifthenelse{\equal{\blindmode}{true}}{%
+  \author{Anonymous Author(s)}%
+  \institute{Affiliations withheld for double-blind peer review}%
+  \authorrunning{Anonymous}%
+}{%
+  \author{Sanjay Mishra \and Divya Chukkapalli \and Ganesh R. Naik}%
+  \institute{%
+    S. Mishra \at Independent Researcher, Raleigh, NC, USA \\
+    \email{sanmish4@icloud.com}%
+    \and
+    D. Chukkapalli \at Independent Researcher, Apex, NC, USA \\
+    \email{divya.95j@gmail.com}%
+    \and
+    G. R. Naik \at Torrens University Australia, Adelaide, SA, Australia \\
+    \email{ganesh.naik@torrens.edu.au}%
+  }%
+  \date{Received: date / Accepted: date}%
+  % The correct dates will be entered by the editor
+  \authorrunning{Mishra et al.}%
+}%
 
 \titlerunning{Real-Time Intelligence and Scalable Architecture for Robotics}
-\authorrunning{Mishra et al.}
 
 \begin{document}
+
+\maketitle
 
 \begin{abstract}
 Timing is not a performance metric in robotics; it is a requirement for correctness. This paper is a \textbf{survey/tutorial} with a \textbf{reference-specification} contribution: it treats real-time intelligence and scalable architecture as a single end-to-end systems problem spanning deadlines, execution-time variability, middleware quality of service (QoS), and the edge-cloud division of computation.
@@ -81,7 +93,6 @@ Two reference artifacts are specified: the \textbf{Temporal Intelligence Contrac
 To support reproducible adoption, the paper provides a minimal contract schema, a conformance checklist, and reporting templates for prototype implementation and measurement. The goal is to make timing and learning-related assumptions explicit and auditable in learning-enabled robotic systems.
 \keywords{Real-time robotics \and ROS~2 (Robot Operating System~2) \and robotics middleware \and DDS/QoS \and end-to-end latency monitoring \and edge robotics (edge computing) \and distributed robotic systems \and digital twins for robotics \and machine learning inference deployment \and scalability}
 \end{abstract}
-\maketitle
 
 % =============================================================================
 \section{Introduction}
@@ -157,7 +168,7 @@ Table~\ref{tab:tic_comparison} summarizes the gap: TIC is not ``yet another timi
     \textcolor{white}{\textbf{ROSRV}} &
     \textcolor{white}{\textbf{ROS\-Monitoring}} &
     \textcolor{white}{\textbf{ROS~2 Lifecycle}} &
-    \textcolor{white}{\textbf{TIC (this paper)}} \\
+    \textcolor{white}{\textbf{TIC (present work)}} \\
     \midrule
     End-to-end timing chains / deadlines & Native~\cite{autosar2020} & Partial & Partial~\cite{ferrando2020rosmonitoring} & Partial & Native (latency envelope) \\
     Runtime checking hooks              & Native~\cite{autosar2020} & Native~\cite{huang2014rosrv} & Native~\cite{ferrando2020rosmonitoring} & Native (lifecycle transitions) & Native (status stream + lifecycle binding) \\
@@ -1593,6 +1604,9 @@ The next decade will likely see verified real-time AI emerge as a practical engi
 
 % =============================================================================
 
+\ifthenelse{\equal{\blindmode}{true}}{%
+  % Declarations are on the separate title page (title_page.tex) for double-blind review.
+}{%
 \section*{Statements and Declarations}
 \subsection*{Funding}
 This work received no external funding.
@@ -1622,6 +1636,7 @@ Not applicable.
 
 \subsection*{Consent for publication}
 Not applicable.
+}%
 
 \bibliographystyle{spbasic}
 \bibliography{references}

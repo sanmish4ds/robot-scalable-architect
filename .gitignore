@@ -23,4 +23,7 @@ cis_template_tmp/
 tic_monitor/artifacts/
 tic_monitor/examples/events_example_long.csv
 
+# CIS double-blind submission bundle
+Real_Time_Intelligence_and_Scalable_Architecture_for_Robotics (2)/supplementary_blind.zip
+
 *.zip

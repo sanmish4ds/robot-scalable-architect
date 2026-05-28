@@ -1,0 +1,61 @@
+% Separate title page + declarations (upload alongside blind manuscript).
+% Build: latexmk -pdf title_page.tex  ->  title_page.pdf
+\documentclass[11pt]{article}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{hyperref}
+\usepackage{url}
+
+\begin{document}
+\begin{center}
+  {\LARGE\bfseries Real-Time Intelligence and Scalable Architecture for Robotics}\\[1.5em]
+  {\large Title page and declarations}\\[0.5em]
+  {\normalsize (not included in the blind-reviewed PDF)}\\[2em]
+\end{center}
+
+\section*{Authors and affiliations}
+\textbf{Sanjay Mishra}\\
+Independent Researcher, Raleigh, NC, USA\\
+\href{mailto:sanmish4@icloud.com}{sanmish4@icloud.com}\\[0.8em]
+\textbf{Divya Chukkapalli}\\
+Independent Researcher, Apex, NC, USA\\
+\href{mailto:divya.95j@gmail.com}{divya.95j@gmail.com}\\[0.8em]
+\textbf{Ganesh R. Naik}\\
+Torrens University Australia, Adelaide, SA, Australia\\
+\href{mailto:ganesh.naik@torrens.edu.au}{ganesh.naik@torrens.edu.au}
+
+\section*{Declarations}
+
+\subsection*{Funding}
+This work received no external funding.
+
+\subsection*{Competing interests}
+The authors declare that they have no competing interests.
+
+\subsection*{Author contributions}
+S.M.\ led the conceptualization and writing.
+D.C.\ contributed systems-architecture and reliability perspectives.
+G.R.N.\ contributed survey synthesis and safety/assurance perspectives.
+All authors reviewed and approved the final manuscript.
+
+\subsection*{Data availability}
+Simulation outputs supporting the discrete-event evaluation are included as CSV/JSON
+artifacts (\texttt{artifacts/des\_outputs/}, including per-run summaries, CAAI sensitivity
+sweep, and \texttt{des\_plot\_samples.csv}). A host-side timing trace is provided as
+\texttt{artifacts/host\_trace\_latency\_ms.csv}. No proprietary or human-subject datasets
+were used.
+
+\subsection*{Code availability}
+A software-only reference implementation of a TIC monitor and CAAI supervisor is available at
+\url{https://github.com/sanmish4ds/robot-scalable-architect} (directory \texttt{tic\_monitor/}),
+with JSON Schema at \texttt{tic\_monitor/schema/tic.schema.json}.
+
+\subsection*{Ethics approval}
+Not applicable.
+
+\subsection*{Consent to participate}
+Not applicable.
+
+\subsection*{Consent for publication}
+Not applicable.
+
+\end{document}
