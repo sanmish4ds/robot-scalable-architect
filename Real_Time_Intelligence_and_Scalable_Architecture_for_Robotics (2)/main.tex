@@ -86,12 +86,14 @@
 \maketitle
 
 \begin{abstract}
-Timing is not a performance metric in robotics; it is a requirement for correctness. This paper is a \textbf{survey/tutorial} with a \textbf{reference-specification} contribution: it treats real-time intelligence and scalable architecture as a single end-to-end systems problem spanning deadlines, execution-time variability, middleware quality of service (QoS), and the edge-cloud division of computation.
+Deploying learned perception in safety-critical robotic systems creates a fundamental tension: machine learning optimizes average-case accuracy, while physical systems demand worst-case timing guarantees. This paper addresses how these two worldviews can be reconciled through explicit, runtime-monitored contracts that couple adaptive inference quality to safety-critical execution envelopes.
+
+This paper is a \textbf{survey/tutorial} with a \textbf{reference-specification} contribution: it treats real-time intelligence and scalable architecture as a single end-to-end systems problem spanning deadlines, execution-time variability, middleware quality of service (QoS), and the edge-cloud division of computation.
 
 Two reference artifacts are specified: the \textbf{Temporal Intelligence Contract (TIC)} and \textbf{Contract-Aware Adaptive Inference (CAAI)}. TIC unifies latency envelopes, uncertainty/drift envelopes, safety fallback behavior, observability requirements, and scalability limits into a machine-readable contract intended for runtime monitoring and auditing. CAAI is a deterministic supervisor specification that consumes TIC-relevant signals (latency margin, calibrated uncertainty, and drift indicators) to switch between perception tiers and to couple tier selection to a corresponding safety envelope.
 
 To support reproducible adoption, the paper provides a minimal contract schema, a conformance checklist, and reporting templates for prototype implementation and measurement. The goal is to make timing and learning-related assumptions explicit and auditable in learning-enabled robotic systems.
-\keywords{Real-time robotics \and ROS~2 (Robot Operating System~2) \and robotics middleware \and DDS/QoS \and end-to-end latency monitoring \and edge robotics (edge computing) \and distributed robotic systems \and digital twins for robotics \and machine learning inference deployment \and scalability}
+\keywords{adaptive intelligent systems \and uncertainty-aware control \and emergent fleet behavior \and runtime contract monitoring \and real-time robotics \and machine learning inference deployment \and end-to-end latency monitoring \and distributed robotic systems \and edge robotics (edge computing) \and digital twins for robotics \and scalability \and ROS~2 (Robot Operating System~2) \and robotics middleware \and DDS/QoS}
 \end{abstract}
 
 % =============================================================================
@@ -106,7 +108,9 @@ The increase in speed of control loops, combined with more complex decision-maki
 \medskip
 \noindent\textbf{Roadmap:}\quad
 This paper is a \emph{survey/tutorial} with a \emph{reference-specification} contribution: it synthesizes prior work, specifies contract artifacts and switching policies, and provides a prototype decomposition and pilot-experiment template (Section~\ref{sec:eval}) intended to support reproducible evaluation in ROS~2-style systems.
-\textit{Unless explicitly stated otherwise, all numerical values in Tables~1, 4, 5, 8, and~9 are synthetic illustrations of reporting format, not measurements from a physical deployment.}
+\textit{Numeric examples in tables and worked calculations (except the discrete-event results in Section~\ref{subsec:sim_results}) are pedagogical illustrations of reporting format and contract semantics; deployed systems must be validated using the measurement protocol in Section~\ref{sec:eval}.}
+
+From a complex systems perspective, a robotic fleet under variable load exhibits emergent timing behavior: contention effects that are invisible in single-robot tests become dominant failure modes at fleet scale. TIC and CAAI are mechanisms for managing this emergent complexity---making adaptive, self-organizing behavior in the inference pipeline auditable and bounded rather than unpredictable.
 
 It starts with a literature-based perspective of how real-time constraints and robot software architectures have developed together (Section~\ref{sec:lit}), followed by making these constraints explicit through timing models, schedulability arguments, and worst-case reasoning (Section~\ref{sec:rt}). Section~\ref{sec:scale} then treats scalability as a set of engineering decisions, examining how decomposition, middleware, and the edge-cloud continuum either preserve or violate end-to-end latency guarantees.
 
@@ -152,6 +156,13 @@ Two existing approaches are worth distinguishing from {TIC}. {AUTOSAR} Timing Ex
 {ROSRV} provides runtime verification for {ROS} by monitoring message-level safety properties via formal specifications~\cite{huang2014rosrv}, but operates primarily at the communication protocol/property level and does not treat timing envelopes, uncertainty calibration, drift monitoring, and scalability constraints as a single auditable contract artifact.
 
 Table~\ref{tab:tic_comparison} summarizes the gap: TIC is not ``yet another timing budget format,'' but a cross-layer contract that binds timing to learning-specific evidence and to an explicit fallback state machine.
+
+\paragraph{Worked comparison (Option A): ROSRV vs.\ TIC on one AMR path.}
+To make the comparison concrete, consider the warehouse AMR perception path used throughout this paper:
+\emph{camera frame publish \(\rightarrow\) detections publish} with a 30\,Hz period and a 25\,ms deadline.
+In ROSRV, the dominant artifact is a \emph{message-level property} over the ROS communication graph (e.g., a temporal logic assertion that a detection message should follow each camera message within a bounded time window, and that certain fields satisfy application invariants). ROSRV therefore naturally expresses \emph{ordering and safety properties} over topic streams, and can be used to raise alarms or trigger a property-driven response.
+
+TIC adds three elements that are not first-class in ROSRV-style specifications: (i) a \emph{latency envelope} expressed as percentiles (p50/p95/p99/max) under declared stressors, not only a single ``within \(\Delta\)'' bound; (ii) \emph{learning evidence} (calibrated uncertainty and drift metrics) that gates trust in detections; and (iii) an \emph{executable fallback state machine} that binds monitoring outcomes to a tiered safety envelope (e.g., Tier~3 implies a safe-stop-compatible speed/stop constraint). The practical distinction is that ROSRV can state and monitor properties, while TIC couples timing evidence, learning evidence, and degraded-mode behavior into a single auditable contract document plus a runtime status stream.
 
 \begin{table*}[t]
   \centering
@@ -200,6 +211,36 @@ Digital twins, continuously updated computational models of physical systems, ha
 Integrating learning into deployed robotic systems introduces new workload characteristics that classical real-time schedulability theory did not anticipate. Neural network inference brings several of these: input-dependent execution time, GPU memory pressure that varies with batch size and model complexity, and gradual distributional drift that can degrade prediction quality in ways that are difficult to detect without explicit monitoring. Structured pruning, quantization, and knowledge distillation can meaningfully reduce inference latency~\cite{sze2017}, though the robustness of compressed models under distributional shift and corner-case inputs remains a concern that compression alone does not resolve~\cite{brunke2022,seshia2022}. Beyond compression, calibrated uncertainty estimation and post-hoc calibration methods provide confidence signals that safety-monitoring layers can use directly~\cite{gal2016dropout,guo2017calibration}. TinyML-style compression and deployment techniques can further reduce latency and power on microcontroller-class hardware.
 At the other end of the scale, large foundation models and vision-language-action architectures are reshaping how robotic capabilities are learned and assembled. Deploying these models within real-time latency constraints remains, for the most part, an open problem.
 
+\subsection{Synthesis: the missing joint artifact}
+\label{subsec:synthesis_gap}
+Across the four bodies of work surveyed above---real-time scheduling, middleware/QoS, edge--cloud architecture, and learning-enabled autonomy---a common gap emerges: each contributes mechanisms for one dimension of the RT--ML integration problem, but none provides a single artifact that jointly binds timing evidence, learning-quality evidence, and fallback behavior into a runtime-auditable contract. TIC is designed to close this specific gap by making those obligations explicit, versioned, and monitorable.
+
+\begin{figure}[htbp]
+  \centering
+  \resizebox{0.92\linewidth}{!}{%
+  \begin{tikzpicture}[font=\small]
+    % axes
+    \draw[->, thick] (0,0) -- (10,0) node[below right] {Learning-aware evidence};
+    \draw[->, thick] (0,0) -- (0,6) node[above left, rotate=90] {Runtime monitored contract};
+    \draw[dashed, gray] (5,0) -- (5,6);
+    \draw[dashed, gray] (0,3) -- (10,3);
+    \node[below] at (2.5,0) {\scriptsize timing-only / weak learning signals};
+    \node[below] at (7.5,0) {\scriptsize uncertainty/drift + quality signals};
+    \node[left]  at (0,1.5) {\scriptsize static specs};
+    \node[left]  at (0,4.5) {\scriptsize runtime monitoring};
+
+    % points
+    \node[draw, rounded corners=3pt, fill=gray!10] at (2.2,4.5) {\scriptsize AUTOSAR TIMEX};
+    \node[draw, rounded corners=3pt, fill=gray!10] at (2.5,3.6) {\scriptsize ROS 2 Lifecycle};
+    \node[draw, rounded corners=3pt, fill=gray!10] at (2.0,4.0) {\scriptsize ROSRV};
+    \node[draw, rounded corners=3pt, fill=gray!10] at (3.2,4.2) {\scriptsize ROS-Monitoring};
+    \node[draw, rounded corners=3pt, fill=blue!10, thick] at (7.4,4.5) {\scriptsize TIC + CAAI};
+  \end{tikzpicture}%
+  }
+  \caption{A minimal taxonomy of contract approaches by (i) whether the artifact is designed for runtime monitoring and (ii) whether it is learning-aware (uncertainty/drift/quality evidence). TIC positions itself as a joint, runtime-auditable contract spanning both axes.}
+  \label{fig:taxonomy}
+\end{figure}
+
 % =============================================================================
 \section{Real-Time Intelligence: Models, Metrics, and Design Contracts}
 \label{sec:rt}
@@ -223,7 +264,7 @@ That observation changes what ``optimization'' means in practice. It is rarely a
 
 \begin{table}[htbp]
   \centering
-  \caption{Illustrative latency budget for a 50\,Hz low-level control loop
+  \caption{Example latency budget for a 50\,Hz low-level control loop
     with a 20\,ms period (values in ms).}
   \label{tab:latency}
   \rowcolors{2}{tablealt}{white}
@@ -615,20 +656,19 @@ for the example in Table~6, \(P_v = 3/60 = 0.05\).
 The RTI-Score provides a deployment-readiness metric that aggregates compliance across clauses:
 \[
   \mathrm{RTI\text{-}Score}
-  = w_1 S_t + w_2 S_q + w_3 S_s + w_4 S_o - w_5 P_v
+  = \min\!\Bigl(S_s,\; w_1 S_t + w_2 S_q + w_4 S_o\Bigr) - w_5 P_v,
+  \quad\text{subject to } S_s = 1.0
 \]
 
-The linear aggregation form is proposed as a design pattern; the weights $w_1$--$w_5$ are not universal constants and must be calibrated for each deployment through system-level hazard analysis (FMEA or HAZOP), consistent with the applicable safety standard (ISO 26262, IEC 61508, or ISO 10218).
+This conjunctive form encodes a safety-engineering first principle: \emph{non-safety terms must not compensate for a safety violation}. If safety compliance drops below 1.0 (fallback triggered or safety invariant violated), the score collapses regardless of timing, quality, or observability. The weights $w_1,w_2,w_4,w_5$ are deployment-specific and must be calibrated through hazard analysis (FMEA/HAZOP) consistent with the applicable safety standard (ISO~26262, IEC~61508, or ISO~10218).
 
 \vspace{4pt}
-\noindent\fbox{\parbox{0.98\linewidth}{\footnotesize\textbf{NOTE:} The weights $w_1\!=\!0.15$, $w_2\!=\!0.15$, $w_3\!=\!0.35$, $w_4\!=\!0.10$, $w_5\!=\!0.25$ used below are solely to demonstrate arithmetic; they carry no engineering authority. For any deployment, weights \emph{must} be derived through system-level hazard analysis (FMEA or HAZOP) against the applicable safety standard (ISO 26262, IEC 61508, or ISO 10218). Using illustrative weights in a production system without this analysis constitutes an unsafe practice.}}
+\noindent\fbox{\parbox{0.98\linewidth}{\footnotesize\textbf{NOTE:} The weights $w_1\!=\!0.15$, $w_2\!=\!0.15$, $w_3\!=\!0.35$, $w_4\!=\!0.10$, $w_5\!=\!0.25$ below demonstrate arithmetic only. Production deployments \emph{must} derive $w_i$ from system-level hazard analysis (FMEA or HAZOP) against the applicable safety standard (ISO~26262, IEC~61508, or ISO~10218).}}
 \vspace{4pt}
-
-The term values in Table~\ref{tab:rti_example} are illustrative and do not derive from physical deployment; they demonstrate the scoring mechanics only.
 
 \begin{table}[htbp]
   \centering
-  \caption{Worked example of RTI-Score computation for an AMR perception module over a 60-cycle monitoring window. Values are illustrative; they demonstrate the scoring mechanics and are not derived from physical deployment.}
+  \caption{Worked example of RTI-Score computation for an AMR perception module over a 60-cycle monitoring window.}
   \label{tab:rti_example}
   \rowcolors{2}{tablealt}{white}
   \renewcommand{\arraystretch}{1.15}
@@ -649,8 +689,7 @@ The term values in Table~\ref{tab:rti_example} are illustrative and do not deriv
   \renewcommand{\arraystretch}{1}
   \vspace{2pt}
   \caption*{\footnotesize With $w_1\!=\!0.15$, $w_2\!=\!0.15$, $w_3\!=\!0.35$,
-    $w_4\!=\!0.10$, $w_5\!=\!0.25$: RTI-Score $= 0.138 + 0.131 + 0.350 +
-    0.078 - 0.013 = 0.684$.}
+    $w_4\!=\!0.10$, $w_5\!=\!0.25$: RTI-Score $= \min(1.0,\,0.138+0.131+0.078) - 0.013 = 0.334$.}
 \end{table}
 
 \FloatBarrier
@@ -664,7 +703,7 @@ over throughput. A module whose RTI-Score drops below a
 deployment-specified threshold can be quarantined for
 investigation without bringing down the wider system.
 
-\subsubsection{Worked FMEA grounding for RTI-Score weights (illustrative)}
+\subsubsection{Worked FMEA grounding for RTI-Score weights}
 \label{subsec:fmea_weights}
 To reduce ``numerology'' risk in weight selection, a minimal Failure Modes and Effects
 Analysis (FMEA) can be used to map dominant hazards to TIC clauses and to derive weight
@@ -676,7 +715,7 @@ allocations (and must be reviewed by the responsible safety process owner).
 
 \begin{table}[htbp]
   \centering
-  \caption{Illustrative FMEA for a warehouse AMR perception path and mapping to TIC clauses (example only; replace with deployment-specific scoring).}
+  \caption{Example FMEA for a warehouse AMR perception path and mapping to TIC clauses.}
   \label{tab:fmea}
   \rowcolors{2}{tablealt}{white}
   \renewcommand{\arraystretch}{1.15}
@@ -741,14 +780,16 @@ efficiency-critical. In practice, teams can normalize clause-RPN totals to defin
 \label{sec:tic_schema}
 
 To make TIC implementable and auditable, a conforming component SHOULD publish a
-versioned contract document (e.g., JSON) and a runtime ``contract status'' stream.
-The document defines static intent (thresholds, deadlines, ownership); the status
-stream provides the time-indexed evidence used for compliance.
+versioned contract document (JSON, schema version \texttt{1.0.0}) and a runtime
+``contract status'' stream. The document defines static intent (thresholds, deadlines,
+ownership, and immutable \texttt{component.build} provenance); the status stream provides
+the time-indexed evidence used for compliance. A complete JSON Schema (draft-07) is
+maintained as \path{tic\_monitor/schema/tic.schema.json}.
 
 \begin{table}[htbp]
   \centering
   \small
-  \caption{Compact TIC contract schema excerpt (illustrative).}
+  \caption{Compact TIC contract schema excerpt (required fields).}
   \label{tab:tic_schema_excerpt}
   \rowcolors{2}{tablealt}{white}
   \renewcommand{\arraystretch}{1.15}
@@ -759,9 +800,11 @@ stream provides the time-indexed evidence used for compliance.
     \textcolor{white}{\textbf{Type}} &
     \textcolor{white}{\textbf{Meaning}} \\
     \midrule
-    tic\_version & string & Contract schema version (semver). \\
+    tic\_version & string & Contract schema version (semver, e.g., 1.0.0). \\
     component.name & string & Component identifier (node/service). \\
-    component.build & string & Immutable build provenance (git hash/image tag). \\
+    component.build.type & string & Provenance kind (\texttt{git}, \texttt{container}, \texttt{semver}). \\
+    component.build.id & string & Immutable identifier (commit hash, digest, or release tag). \\
+    component.build.image & string & Optional OCI image reference when \texttt{type=container}. \\
     time\_base & string & Clock source for timestamps (e.g., monotonic). \\
     paths[*].deadline\_ms & number & Deadline per monitored end-to-end path. \\
     paths[*].latency\_env\_ms & object & p50/p95/p99/max under declared conditions. \\
@@ -775,13 +818,17 @@ stream provides the time-indexed evidence used for compliance.
   \renewcommand{\arraystretch}{1}
 \end{table}
 
-\begin{designbox}{Minimal TIC contract example (illustrative JSON)}
+\begin{designbox}{Minimal TIC contract example (JSON)}
 \begin{verbatim}
 {
-  "tic_version": "1.0",
+  "tic_version": "1.0.0",
   "component": {
     "name": "perception_node",
-    "build": "git:abc123"
+    "build": {
+      "type": "git",
+      "id": "abc123def4567890",
+      "image": "registry.example/perception:1.2.3"
+    }
   },
   "critical_paths": [
     {
@@ -1008,6 +1055,14 @@ The two-threshold recovery design (\(M_{\text{up11}} > M_{\text{up21}}\)) preven
 between Tier~2 and Tier~1 under marginal conditions; both
 values must be declared in the TIC contract document.
 
+\subsubsection{Distinction from anytime algorithms and cascades}
+\label{subsec:caai_novelty}
+Anytime algorithms, cascades, and early-exit policies treat adaptation primarily as a \emph{compute} decision: given a time or energy budget, they select an inference depth or model to maximize expected accuracy~\cite{zilberstein1996anytime,deanboddy1988,shihliu1995}. In that framing, tier switching is an optimization knob and the safety controller is typically external (or implicit) to the inference policy.
+
+CAAI's central difference is cross-layer: it couples tier selection to an explicit \emph{safety envelope} transition declared in TIC. The supervisor's invariant is not ``run the best model you can,'' but ``the active tier implies an envelope that keeps the system safe under worst-case timing and evidence conditions.'' Concretely, Tier~3 is defined to be safe-stop-compatible (Section~\ref{sec:caai_policy}) and therefore forces a conservative control mode (e.g., reduced speed cap and increased stopping distance) when uncertainty/drift rise or timing margin collapses. This makes tier-down a safety action, not only a compute action, and it yields an auditable mechanism: the inference policy and the physical operating envelope move together as a single contract-governed transition.
+
+Shielding and runtime monitoring are the closest prior patterns~\cite{alshiekh2018}: a shield enforces hard constraints regardless of what a learned policy proposes. CAAI complements that by addressing \emph{which} learned component to run under varying timing/evidence conditions and by making the switching logic itself a declared, monitored contract artifact rather than an ad-hoc heuristic.
+
 \paragraph{Signal and threshold definitions.}
 In the reference policy, each decision is evaluated over a monitoring window of \texttt{window\_cycles} control cycles (or messages) at the relevant rate. We track \texttt{consecutive\_misses} as the number of back-to-back deadline misses within the current window (reset to zero on any on-time completion). ``\texttt{unc is stable}'' means the uncertainty summary remains below its recovery bound and does not exhibit upward trend over the last \texttt{dwell\_min} cycles (e.g., bounded slope or variance). Threshold parameters are provided by the TIC: \(M_{\cdot}\) are latency-margin thresholds in milliseconds; \(U_{\cdot}\) are bounds on the chosen calibrated uncertainty summary (e.g., max ECE proxy or predictive entropy over ROI); and \(D_{\cdot}\) are bounds on the chosen drift statistic (e.g., PSI/MMD/ADWIN score). Implementations must state the exact uncertainty and drift metrics, units/ranges, and windowing choices to make the switching behavior reproducible and auditable.
 
@@ -1144,33 +1199,7 @@ next 5--10 minutes; and (iii) remove the stressors and observe recovery.
 (C) CAAI enabled. Optionally add (D) a reactive baseline that switches tiers only
 after a miss.
 
-\begin{table}[htbp]
-  \centering
-  \caption{Schematic reporting format for the end-to-end latency CDF
-  of the instrumented perception path. One empirical step-CDF curve
-  per condition should be plotted, pooling all samples collected under that condition. This schematic illustrates the required format; measured curves from a physical deployment would replace it.}
-  \label{tab:pilot_latency}
-  \rowcolors{2}{tablealt}{white}
-  \renewcommand{\arraystretch}{1.15}
-  \begin{tabular}{@{}L{0.27\linewidth}C{0.13\linewidth}C{0.13\linewidth}C{0.13\linewidth}C{0.13\linewidth}@{}}
-    \toprule
-    \rowcolor{tablehead}
-    \textcolor{white}{\textbf{Condition}} &
-    \textcolor{white}{\textbf{p50}} &
-    \textcolor{white}{\textbf{p95}} &
-    \textcolor{white}{\textbf{p99}} &
-    \textcolor{white}{\textbf{max}} \\
-    \midrule
-    Fixed Tier~1 (nominal)         & 8.0  & 14.0 & 20.0 & 25.0 \\
-    Fixed Tier~1 (induced load)    & 10.0 & 22.0 & 35.0 & 55.0 \\
-    Fixed Tier~2 (induced load)    & 7.0  & 12.0 & 16.0 & 21.0 \\
-    CAAI (induced load window)     & 7.5  & 14.0 & 19.0 & 24.0 \\
-    \bottomrule
-  \end{tabular}
-  \renewcommand{\arraystretch}{1}
-  \caption*{\footnotesize\textit{Note:} Values above are illustrative placeholders to demonstrate reporting. Acceptance-grade results should include confidence intervals across runs, along with the corresponding deadline and miss-rate statistics.}
-\end{table}
-% --- DES-derived evaluation figures (Figs.~7--9); overhead figure remains a schematic template ---
+% --- DES-derived evaluation figures (Figs.~7--9) ---
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\linewidth]{fig_pilot_latency_cdf}
@@ -1196,41 +1225,6 @@ after a miss.
   (120--240\,s), and recovery (240--300\,s) phases.}
   \label{fig:tiertrace}
 \end{figure}
-
-\begin{table}[htbp]
-  \centering
-  \caption{TIC monitor overhead (schematic values; replace with
-  measured results from the instrumented prototype).}
-  \label{tab:pilot_overhead}
-  \rowcolors{2}{tablealt}{white}
-  \renewcommand{\arraystretch}{1.15}
-  \begin{tabular}{@{}L{0.30\linewidth}C{0.16\linewidth}C{0.20\linewidth}C{0.20\linewidth}@{}}
-    \toprule
-    \rowcolor{tablehead}
-    \textcolor{white}{\textbf{Component}} &
-    \textcolor{white}{\textbf{CPU (\%)}} &
-    \textcolor{white}{\textbf{RAM (MB)}} &
-    \textcolor{white}{\textbf{Added latency (ms)}} \\
-    \midrule
-    TIC monitor node        & 3.0 & 120 & 0.1 \\
-    CAAI supervisor node    & 1.0 &  40 & 0.0 \\
-    Tracing/logging (extra) & 2.0 &  80 & 0.2 \\
-    \bottomrule
-  \end{tabular}
-  \renewcommand{\arraystretch}{1}
-  \caption*{\footnotesize\textit{Note:} ``Added latency'' is $\Delta$ end-to-end path latency with instrumentation \emph{enabled} vs. \emph{disabled} under the same load and protocol.}
-\end{table}
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=\linewidth]{fig_pilot_overhead}
-  \caption{\textbf{Schematic template (not simulation data):} required reporting format for
-  TIC monitor overhead per component (CPU share~\%, RSS in MB, added latency $\Delta$ms per
-  Table~\ref{tab:pilot_overhead}). Values are placeholders; a physical ROS~2 deployment would
-  replace this figure with measured overhead.}
-  \label{fig:pilot_overhead}
-\end{figure}
-
 
 \subsection{Compact simulation instantiation of TIC/CAAI (reproducible)}
 \label{subsec:sim_results}
@@ -1545,15 +1539,13 @@ Field robots operating in outdoor or unstructured environments face a connectivi
 \section{Original Contributions}
 \label{sec:contributions}
 
-This work contributes a contract-centric framing, survey synthesis, and reference specifications intended to make real-time and learning-enabled robotic stacks more auditable at deployment time.
-
-\textbf{Temporal Intelligence Contract (TIC).} Section~\ref{sec:tic} defines TIC as a unified contract artifact that binds (i) latency envelopes, (ii) uncertainty and drift envelopes, (iii) safety fallback behavior, (iv) observability requirements, and (v) scalability limits for each component and critical path. Relative to existing interface descriptions and runtime monitoring practices, TIC's contribution is the explicit co-specification of these obligations together with required runtime evidence (Section~\ref{sec:tic_schema}), so that timing and learning-related assumptions are continuously checkable rather than implicitly assumed at integration.
-
-\textbf{Contract-Aware Adaptive Inference (CAAI).} Section~\ref{sec:caai} specifies CAAI as a deterministic supervisor that uses TIC monitor signals (latency margin, calibrated uncertainty, and drift) to select among perception tiers while enforcing auditable invariants. The key contribution is not tiering itself but treating the tier-selection policy as a contract-governed mechanism with explicit downgrade/upgrade conditions and safety-envelope coupling (Section~\ref{sec:caai_policy}), supporting repeatable behavior and post-incident analysis.
-
-\textbf{Prototype and evaluation methodology.} Section~\ref{sec:eval} provides a minimal prototype decomposition, stressor suite, metrics, and baselines intended to support comparable evaluation of TIC/CAAI in ROS~2-style systems.
-
-\textbf{Adoption path (ROS~2 integration and versioning).} TIC is designed to fit into existing ROS~2 deployment mechanics rather than replace them. A practical integration is to (i) emit the versioned TIC document once per component (e.g., as a build artifact tied to the node's container image or on a latched topic), (ii) publish a periodic contract-status stream during runtime, and (iii) bind contract state transitions to ROS~2 managed lifecycle transitions (e.g., refuse activation when the contract cannot be satisfied; trigger deactivation when violations persist). To support community uptake, the schema should be treated as a versioned interface (semantic versioning, explicit deprecation policy) maintained in a public repository alongside a minimal reference monitor implementation and example ROS~2 packages.
+Relative to the timing monitors, middleware practices, and learning-deployment patterns surveyed in Section~\ref{sec:lit}, this paper adds three artifacts that are specified jointly rather than as disconnected guidelines:
+\begin{itemize}[leftmargin=*,itemsep=0.2em]
+  \item \textbf{TIC} (Sections~\ref{sec:tic}--\ref{sec:tic_schema}): a versioned, machine-readable contract co-specifying latency, uncertainty/drift, fallback, observability, and scalability obligations with required runtime evidence.
+  \item \textbf{CAAI} (Section~\ref{sec:caai}): a deterministic tier supervisor whose downgrade/recovery rules are driven by TIC monitor signals and coupled to safety envelopes.
+  \item \textbf{Adoption package} (Section~\ref{sec:eval}): a reporting protocol, discrete-event instantiation with statistical analysis (Section~\ref{subsec:sim_results}), and a reference monitor/schema for independent implementation.
+\end{itemize}
+The survey synthesis and case patterns (Sections~\ref{sec:lit}--\ref{sec:cases}) contextualize these artifacts; they are not separate empirical claims.
 
 % =============================================================================
 \section{Challenges and Future Directions}
@@ -1565,7 +1557,7 @@ fundamental challenges remain open. The discussion below groups these by theme, 
 \subsection{Limitations and Scope}
 \label{subsec:limitations}
 
-This paper is intended as a survey/tutorial plus a reference specification. It does not present new empirical results from a ROS~2 deployment or hardware testbed. As a consequence, parameters such as TIC clause thresholds, RTI-Score weights, and CAAI switching constants should be treated as design-time declarations that must be derived from system-level hazard analysis and calibrated on the target platform. Similarly, drift and uncertainty signals are proxies whose operational reliability depends on the chosen estimators and the quality of instrumentation. Finally, the paper does not claim to solve worst-case execution-time bounding for modern deep networks; instead it focuses on architectural patterns and runtime monitoring hooks that can make timing risk explicit and managed in practice.
+This paper's contribution is a contract specification and reference architecture, not an empirical benchmark. The DES in Section~\ref{subsec:sim_results} demonstrates the mechanics of TIC-governed tier switching under a validated queueing model; hardware validation of specific platforms is intentionally left to adopters using the reporting protocol in Section~\ref{sec:eval}. Parameters such as TIC clause thresholds, RTI-Score weights, and CAAI switching constants are design-time declarations that must be derived from system-level hazard analysis and calibrated on the target platform. Drift and uncertainty signals are proxies whose operational reliability depends on the chosen estimators and the quality of instrumentation. The paper does not claim to solve worst-case execution-time bounding for modern deep networks; instead it supplies architectural patterns and runtime monitoring hooks that make timing risk explicit and manageable in practice.
 
 \subsection{Verification, Safety, and Formal Guarantees}
 

@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://github.com/sanmish4ds/robot-scalable-architect/blob/main/tic_monitor/schema/tic.schema.json",
+  "$id": "https://example.org/tic-schema/1.0.0/tic.schema.json",
   "title": "Temporal Intelligence Contract (TIC)",
   "description": "Reference JSON Schema for TIC contracts. This schema is intended to validate machine-readable contract artifacts and enable independent implementations of monitors and supervisors.",
   "type": "object",
@@ -9,20 +9,10 @@
   "properties": {
     "tic_version": {
       "type": "string",
-      "description": "Semantic version of the TIC schema.",
-      "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$"
+      "description": "Semantic version of the TIC schema (major.minor.patch).",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
     },
-    "component": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["name"],
-      "properties": {
-        "name": { "type": "string", "minLength": 1 },
-        "build": { "type": "string" },
-        "owner": { "type": "string" },
-        "description": { "type": "string" }
-      }
-    },
+    "component": { "$ref": "#/definitions/component" },
     "time_base": {
       "type": "string",
       "description": "Clock source for timestamps (e.g., CLOCK_MONOTONIC)."
@@ -41,6 +31,37 @@
     "notes": { "type": "string" }
   },
   "definitions": {
+    "buildProvenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["git", "container", "semver"]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Commit hash, image digest, or release tag."
+        },
+        "image": {
+          "type": "string",
+          "description": "OCI image reference when type is container."
+        }
+      }
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "build"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "build": { "$ref": "#/definitions/buildProvenance" },
+        "owner": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
     "criticalPath": {
       "type": "object",
       "additionalProperties": false,
@@ -133,4 +154,3 @@
     }
   }
 }
-

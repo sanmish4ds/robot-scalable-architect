@@ -42,13 +42,19 @@ class ScalabilitySpec(BaseModel):
     backpressure_policy: str | None = None
 
 
+class BuildProvenance(BaseModel):
+    type: Literal["git", "container", "semver"]
+    id: str = Field(min_length=1)
+    image: str | None = None
+
+
 class Component(BaseModel):
     name: str
-    build: str | None = None
+    build: BuildProvenance
 
 
 class TICContract(BaseModel):
-    tic_version: str = "1.0"
+    tic_version: str = "1.0.0"
     component: Component
     time_base: str | None = None
 

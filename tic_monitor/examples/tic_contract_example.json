@@ -1,6 +1,13 @@
 {
-  "tic_version": "1.0",
-  "component": { "name": "perception_node", "build": "git:abc123" },
+  "tic_version": "1.0.0",
+  "component": {
+    "name": "perception_node",
+    "build": {
+      "type": "git",
+      "id": "abc123def4567890",
+      "image": "registry.example/perception:1.2.3"
+    }
+  },
   "critical_paths": [
     { "path_id": "camera->detections", "deadline_ms": 25.0, "period_ms": 33.3 }
   ],
@@ -15,4 +22,3 @@
   "observability": { "required_metrics": ["latency_ms", "uncertainty", "drift"], "min_emit_hz": 1.0 },
   "scalability": { "publish_rate_hz_max": 30, "queue_depth_max": 10, "backpressure_policy": "drop_oldest" }
 }
-
