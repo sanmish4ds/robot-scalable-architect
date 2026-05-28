@@ -23,3 +23,4 @@ cis_template_tmp/
 tic_monitor/artifacts/
 tic_monitor/examples/events_example_long.csv
 
+*.zip
