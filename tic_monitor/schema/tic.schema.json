@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/sanmish4ds/robot-scalable-architect/blob/main/tic_monitor/schema/tic.schema.json",
+  "title": "Temporal Intelligence Contract (TIC)",
+  "description": "Reference JSON Schema for TIC contracts. This schema is intended to validate machine-readable contract artifacts and enable independent implementations of monitors and supervisors.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tic_version", "component", "critical_paths", "uncertainty", "fallback", "observability", "scalability"],
+  "properties": {
+    "tic_version": {
+      "type": "string",
+      "description": "Semantic version of the TIC schema.",
+      "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$"
+    },
+    "component": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "build": { "type": "string" },
+        "owner": { "type": "string" },
+        "description": { "type": "string" }
+      }
+    },
+    "time_base": {
+      "type": "string",
+      "description": "Clock source for timestamps (e.g., CLOCK_MONOTONIC)."
+    },
+    "critical_paths": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/criticalPath" }
+    },
+    "latency_envelope_ms": { "$ref": "#/definitions/latencyEnvelopeMs" },
+    "uncertainty": { "$ref": "#/definitions/uncertaintySpec" },
+    "fallback": { "$ref": "#/definitions/fallbackSpec" },
+    "observability": { "$ref": "#/definitions/observabilitySpec" },
+    "scalability": { "$ref": "#/definitions/scalabilitySpec" },
+    "caai": { "$ref": "#/definitions/caaiSpec" },
+    "notes": { "type": "string" }
+  },
+  "definitions": {
+    "criticalPath": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path_id", "deadline_ms"],
+      "properties": {
+        "path_id": { "type": "string", "minLength": 1 },
+        "period_ms": { "type": "number", "exclusiveMinimum": 0 },
+        "deadline_ms": { "type": "number", "exclusiveMinimum": 0 },
+        "start_event": { "type": "string" },
+        "end_event": { "type": "string" },
+        "clock": { "type": "string" },
+        "latency_envelope_ms": { "$ref": "#/definitions/latencyEnvelopeMs" }
+      }
+    },
+    "latencyEnvelopeMs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["p50", "p95", "p99", "max"],
+      "properties": {
+        "p50": { "type": "number", "exclusiveMinimum": 0 },
+        "p95": { "type": "number", "exclusiveMinimum": 0 },
+        "p99": { "type": "number", "exclusiveMinimum": 0 },
+        "max": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "uncertaintySpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["calibration_metric", "drift_metric", "drift_warn", "drift_violate"],
+      "properties": {
+        "calibration_metric": { "type": "string", "minLength": 1 },
+        "ece_max": { "type": "number", "minimum": 0 },
+        "ood_metric": { "type": "string" },
+        "ood_threshold": { "type": "number" },
+        "drift_metric": { "type": "string", "minLength": 1 },
+        "drift_warn": { "type": "number", "minimum": 0 },
+        "drift_violate": { "type": "number", "minimum": 0 }
+      }
+    },
+    "fallbackSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state_machine", "max_consecutive_deadline_misses"],
+      "properties": {
+        "state_machine": { "type": "string", "minLength": 1 },
+        "max_consecutive_deadline_misses": { "type": "integer", "minimum": 1 },
+        "actions": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "observabilitySpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["required_metrics", "min_emit_hz"],
+      "properties": {
+        "required_metrics": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "min_emit_hz": { "type": "number", "exclusiveMinimum": 0 },
+        "log_retention_days": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "scalabilitySpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "publish_rate_hz_max": { "type": "number", "exclusiveMinimum": 0 },
+        "max_subscribers": { "type": "integer", "minimum": 1 },
+        "queue_depth_max": { "type": "integer", "minimum": 1 },
+        "backpressure_policy": { "type": "string" }
+      }
+    },
+    "caaiSpec": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "window_cycles": { "type": "integer", "minimum": 10 },
+        "dwell_min": { "type": "integer", "minimum": 0 },
+        "m_down12": { "type": "number" },
+        "m_up11": { "type": "number" },
+        "m_up21": { "type": "number" },
+        "u_23": { "type": "number", "minimum": 0, "maximum": 1 },
+        "u_32": { "type": "number", "minimum": 0, "maximum": 1 },
+        "d_warn": { "type": "number", "minimum": 0, "maximum": 1 },
+        "d_violate": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  }
+}
+

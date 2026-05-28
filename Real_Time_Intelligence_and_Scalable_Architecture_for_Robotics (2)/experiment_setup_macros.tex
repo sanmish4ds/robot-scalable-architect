@@ -1,0 +1,67 @@
+% =============================================================================
+% Illustrative experiment binding (reference-design paper; no hardware run).
+% Replace entire definitions when you have measured results. Do not present
+% these strings as empirical findings from a completed campaign.
+% =============================================================================
+\providecommand{\PilotBindingScope}{%
+This binding is \emph{illustrative}: it fixes notation, units, and reporting slots for a future pilot. It is not a claim that the experiments below were executed on this stack.}
+
+\providecommand{\PilotPlatformCPU}{%
+Example: NVIDIA Jetson Orin NX module, 8$\times$ Cortex-A78AE (illustrative nominal 2.0\,GHz cap).}
+\providecommand{\PilotPlatformGPU}{%
+Example: integrated Ampere-class GPU with configurable power/clock caps (vendor max-power mode off for repeatability).}
+\providecommand{\PilotPlatformRAM}{%
+Example: 16\,GiB LPDDR5 (single-channel configuration as shipped on the module).}
+\providecommand{\PilotOSKernel}{%
+Example: Ubuntu 22.04 LTS with a generic 5.15.x LTS kernel and unattended upgrades disabled during data collection (recommended).}
+\providecommand{\PilotPowerMode}{%
+Example: \textsc{nvpmodel} maximum-performance profile for the module class (document exact ID used).}
+\providecommand{\PilotGovernor}{%
+Example: \texttt{schedutil} on CPU clusters; GPU clocks left at vendor defaults unless pinned explicitly.}
+
+\providecommand{\PilotROS}{%
+Example: ROS~2 Humble Hawksbill.}
+\providecommand{\PilotExecutor}{%
+Example: \texttt{rclcpp} multithreaded executor; perception callbacks in one mutually exclusive group, monitor/supervisor in another to reduce self-interference.}
+\providecommand{\PilotDDS}{%
+Example: Fast DDS with vendor defaults unless a latency study fixes discovery and transport settings.}
+\providecommand{\PilotQoSCamera}{%
+Example: \texttt{/camera/image\_raw} with \texttt{sensor\_data} QoS profile (best effort, depth\,1, keep last) unless the sensor driver requires reliable delivery.}
+\providecommand{\PilotQoSDetections}{%
+Example: \texttt{/detections} with reliable delivery, depth\,1, keep last, same clock domain as upstream image.}
+
+\providecommand{\PilotLatencyStart}{%
+\texttt{sensor\_msgs/Image.header.stamp} on ingress to the perception node (or driver publish time if that is your ground truth).}
+\providecommand{\PilotLatencyEnd}{%
+Wall time when the node publishes \texttt{vision\_msgs/Detection2DArray} (or your project's equivalent detections message).}
+\providecommand{\PilotLatencyClock}{%
+ROS clock on both endpoints (\texttt{rclcpp::ClockType::ROS\_TIME}) with verified time synchronization if any component uses a different domain.}
+
+\providecommand{\PilotDeadlineMs}{%
+$D=33$\,ms (illustrative 30\,Hz perception budget; replace with contract value from your TIC).}
+\providecommand{\PilotMissCounting}{%
+One miss is counted per completed frame whose measured camera$\rightarrow$detections latency exceeds $D$ (per-frame accounting; burst statistics optional).}
+\providecommand{\PilotWeaklyHard}{%
+Weakly-hard $(m,k)$ not used in this illustrative binding (enable only if your TIC states an $(m,k)$ window over misses).}
+
+\providecommand{\PilotStressors}{%
+Example pattern: \texttt{stress-ng --cpu 4 --cpu-method matrixprod} during the stress segment only; optional GPU contention via a second CUDA workload with fixed kernel duration (document both).}
+\providecommand{\PilotAffinity}{%
+Example: pin perception and monitor nodes to CPUs 0--3; pin stressor to CPUs 4--7 on an 8-core module (or document ``no pinning'' if left default).}
+\providecommand{\PilotProtocolDurations}{%
+Example segment lengths matching common pilot guidance: nominal 7.5\,min, induced load 7.5\,min, recovery 5\,min (20\,min total per repetition).}
+
+\providecommand{\PilotRuns}{%
+Measured runs: $N=0$ in this manuscript draft. For acceptance-grade reporting, plan $N\ge 5$ independent repetitions with cold/warm start policy fixed.}
+\providecommand{\PilotCIApproach}{%
+Planned: 95\% bootstrap confidence intervals on \emph{run-level} summaries (e.g., run mean miss rate, run p95 latency) once $N$ traces exist; scripts under \texttt{scripts/} provide a CSV template and \texttt{generate\_miss\_rate\_ci\_figure.py}.}
+
+\providecommand{\PilotCAAIClaims}{%
+Expected qualitative signatures to verify when measured: (i) lower miss rate than fixed Tier~1 under the same stressor because tier-down occurs before repeated deadline violations; (ii) lower tail latency than reactive-after-miss because downgrades precede misses; (iii) envelope mode traces that move with tier and never lag safety-critical deadlines by construction.}
+\providecommand{\PilotSensitivityParams}{%
+Planned sweeps (example ranges): latency margin threshold 6--12\,ms; supervisor dwell time 50--300\,ms; drift score threshold 0.01--0.05 (replace with your monitor's actual scalars).}
+\providecommand{\PilotSensitivityOutcome}{%
+Report stability versus those knobs: tier switches per minute, oscillation count, and worst-case consecutive downgrade/upgrade bursts (template plot: \texttt{fig\_pilot\_sensitivity.png}).}
+
+\providecommand{\PilotTierTraceNote}{%
+The tier trace in Figure~\ref{fig:tiertrace} may use a compressed second axis for layout; for measured work, regenerate from tier logs with \texttt{generate\_tier\_trace.py} using \texttt{--plot-unit min} and \texttt{--phase-ends-sec} aligned to the nominal/stress/recovery segment boundaries.}
