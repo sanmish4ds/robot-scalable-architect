@@ -1,0 +1,25 @@
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+
+# Local LaTeX/build artifacts
+*.aux
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.log
+*.out
+
+# Local template scratch
+cis_template_tmp/
+
+# Python packaging
+*.egg-info/
+.venv/
+
+# TIC monitor generated outputs
+tic_monitor/artifacts/
+tic_monitor/examples/events_example_long.csv
+
